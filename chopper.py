@@ -7,14 +7,14 @@ import numpy as np
 apath = "./assets/"
 newpath = "./new/samples"
 hop = 2048
-sr = 44100
+# sr = 44100
 os.system("rm -rf new")
 os.system("mkdir new")
 
 
-def smooth(samples, hop_length=256):
+def smooth(samples, hop_length=512):
     incr = 1 / hop_length
-    for i, sample in enumerate(samples[::hop_length]):
+    for i, sample in enumerate(samples[:hop_length]):
         samples[i] = sample * incr
         samples[(i + 1) * -1] = samples[(i + 1) * -1] * incr
         incr *= i
@@ -69,11 +69,14 @@ for file in os.listdir(folder):
 
 for fp in files:
     fp = str(fp)
-    track, sr = librosa.load(fp, sr=sr, offset=20, duration=5, mono=True)
-
+    smpr = 44100
+    tr, sr = librosa.load(fp, offset=5, duration=10, mono=True)
+    print("SRRRR")
+    print(sr)
+    track = librosa.resample(tr, sr, 44100)
     low = librosa.effects.percussive(track)
     high = librosa.effects.harmonic(track)
     #
-    process_samples(low, newpath + "perc_")
+    process_samples(low, newpath + "perc_", sr=sr)
     # process_samples(high, newpath + "harm_")
-    process_samples(track, newpath + "_full_")
+    process_samples(track, newpath + "_full_", sr=sr)
