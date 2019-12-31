@@ -12,6 +12,15 @@ os.system("rm -rf new")
 os.system("mkdir new")
 
 
+def smooth(samples, hop_length=256):
+    incr = 1 / hop_length
+    for i, sample in enumerate(samples[::hop_length]):
+        samples[i] = sample * incr
+        samples[(i + 1) * -1] = samples[(i + 1) * -1] * incr
+        incr *= i
+    return samples
+
+
 def process_samples(track, fname, sr=44100, hop=2048):
 
     oenv = librosa.onset.onset_strength(y=track, sr=sr, hop_length=hop)
@@ -23,20 +32,15 @@ def process_samples(track, fname, sr=44100, hop=2048):
     sft = librosa.frames_to_samples(onsets, hop_length=hop)
     sfbt = librosa.frames_to_samples(onset_bt, hop_length=hop)
 
-    for i, s in enumerate(sfbt):
+    for i, start in enumerate(sfbt):
 
-        diff = sft[i] - s
-        if i + 1 < len(sft):
-            end = sft[i + 1] - 512
-        else:
-            end = sft[i] + diff
-        start = s - 512
+        diff = sft[i] - start
+        end = sfbt[i + 1] if len(sfbt) > i + 1 else sft[i] + diff
 
-        if start < 0:
-            start = 0
-        if end > len(track):
-            print("DONE")
-            break
+        # # start = s - 256
+        # if start < 0:
+        #     start = s
+
         new = track[start:end]
 
         print(diff)
@@ -48,8 +52,8 @@ def process_samples(track, fname, sr=44100, hop=2048):
         newname = fname + str(i) + ".wav"
         print(new)
         print(newname)
-
-        sf.write(newname, new, sr, "PCM_24")
+        new_smoothed = smooth(new)
+        sf.write(newname, new_smoothed, sr, "PCM_24")
 
 
 folder = os.fsencode(apath)
@@ -65,11 +69,11 @@ for file in os.listdir(folder):
 
 for fp in files:
     fp = str(fp)
-    track, sr = librosa.load(fp, sr=sr, offset=0.5, duration=15, mono=True)
+    track, sr = librosa.load(fp, sr=sr, offset=20, duration=5, mono=True)
 
     low = librosa.effects.percussive(track)
-    # high = librosa.effects.harmonic(track)
+    high = librosa.effects.harmonic(track)
     #
     process_samples(low, newpath + "perc_")
     # process_samples(high, newpath + "harm_")
-    # process_samples(track, newpath + "def_")
+    process_samples(track, newpath + "_full_")
