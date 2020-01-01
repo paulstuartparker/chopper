@@ -37,7 +37,7 @@ def process_samples(track, fname, sr=44100, hop=2048):
         diff = sft[i] - start
         end = sfbt[i + 1] if len(sfbt) > i + 1 else sft[i] + diff
 
-        # # start = s - 256
+        # start = s - 256
         # if start < 0:
         #     start = s
 
@@ -70,13 +70,13 @@ for file in os.listdir(folder):
 for fp in files:
     fp = str(fp)
     smpr = 44100
-    tr, sr = librosa.load(fp, offset=5, duration=10, mono=True)
+    tr, sr = librosa.load(fp, offset=0, duration=None, mono=True)
     print("SRRRR")
     print(sr)
     track = librosa.resample(tr, sr, 44100)
-    low = librosa.effects.percussive(track)
-    high = librosa.effects.harmonic(track)
+    # low = librosa.effects.percussive(track)
+    # high = librosa.effects.harmonic(track)
     #
-    process_samples(low, newpath + "perc_", sr=sr)
+    # process_samples(low, newpath + "perc_", sr=sr)
     # process_samples(high, newpath + "harm_")
     process_samples(track, newpath + "_full_", sr=sr)
