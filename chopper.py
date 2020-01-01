@@ -52,8 +52,9 @@ def process_samples(track, fname, sr=44100, hop=2048):
         newname = fname + str(i) + ".wav"
         print(new)
         print(newname)
-        new_smoothed = smooth(new)
-        sf.write(newname, new_smoothed, sr, "PCM_24")
+        # new_smoothed = smooth(new)
+        # new_smoothed
+        sf.write(newname, new, sr)
 
 
 folder = os.fsencode(apath)
@@ -70,10 +71,10 @@ for file in os.listdir(folder):
 for fp in files:
     fp = str(fp)
     smpr = 44100
-    tr, sr = librosa.load(fp, offset=0, duration=None, mono=True)
+    track, sr = librosa.load(fp, offset=0, duration=None, mono=True)
     print("SRRRR")
     print(sr)
-    track = librosa.resample(tr, sr, 44100)
+    # track = librosa.resample(tr, sr, 44100)
     # low = librosa.effects.percussive(track)
     # high = librosa.effects.harmonic(track)
     #
