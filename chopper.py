@@ -21,8 +21,6 @@ def smooth(current_slice, fade_length=1024):
         incr += original_incr
         if incr >= .999:
             break
-        # if incr <= 0.001
-        #     break
 
     return current_slice
 
@@ -53,14 +51,11 @@ def process_samples(track, fname, sr, hop=2048):
 
     peaks = librosa.frames_to_samples(onsets, hop_length=hop)
     sample_starts = librosa.frames_to_samples(onset_bt, hop_length=hop)
-    # sample_ends = librosa.frames_to_samples(onset_ft, hop_length=hop)
-    # rack = []
+
     track_length = len(track)
     for i, start in enumerate(sample_starts):
-        # real_start = start if start - hop < 0 else start - hop
         peak = peaks[i]
         end = sample_starts[i + 1] if i + 1 < len(sample_starts) else -1
-        # real_end = end if end + hop > track_length else end + hop
         print(start)
         print("start")
         print(peaks[i])
@@ -75,8 +70,6 @@ def process_samples(track, fname, sr, hop=2048):
         # padded = librosa.util.pad_center(trimmed, len(trimmed) + 1028, mode="constant")
         faded = smooth(trimmed)
 
-        # print(trimmed)
-        # print("trimmed clip")
 
         newname = fname + str(i) + ".wav"
         print(newname)
