@@ -10,13 +10,19 @@ os.system("rm -rf new")
 os.system("mkdir new")
 
 
-def smooth(samples, hop_length=1024):
-    incr = 1 / hop_length
-    for i, sample in enumerate(samples[:hop_length]):
-        samples[i] = sample * incr
-        samples[(i + 1) * -1] = samples[(i + 1) * -1] * incr
-        incr *= i
-    return samples
+def smooth(current_slice, fade_length=1024):
+    incr = 1 / fade_length
+    fadeOut = 0
+    original_incr = 1 / fade_length
+
+    for i, sample in enumerate(current_slice[:fade_length]):
+        current_slice[i] = sample * incr
+        current_slice[(i + 1) * -1] = current_slice[(i + 1) * -1] * incr # * (fadeOut += incr)
+        incr += original_incr
+        if incr >= .999:
+            break
+
+    return current_slice
 
 
 def get_end_indices(peaks, energy):
@@ -45,8 +51,7 @@ def process_samples(track, fname, sr, hop=2048):
 
     peaks = librosa.frames_to_samples(onsets, hop_length=hop)
     sample_starts = librosa.frames_to_samples(onset_bt, hop_length=hop)
-    # sample_ends = librosa.frames_to_samples(onset_ft, hop_length=hop)
-    rack = []
+
     track_length = len(track)
     for i, start in enumerate(sample_starts):
         peak = peaks[i]
@@ -63,15 +68,13 @@ def process_samples(track, fname, sr, hop=2048):
         trimmed, _ = librosa.effects.trim(raw)
         # Add short silence before and after.
         # padded = librosa.util.pad_center(trimmed, len(trimmed) + 1028, mode="constant")
-        # new = smooth(padded)
+        faded = smooth(trimmed)
 
-        # print(trimmed)
-        # print("trimmed clip")
 
         newname = fname + str(i) + ".wav"
         print(newname)
 
-        sf.write(newname, trimmed, sr)
+        sf.write(newname, faded, sr)
 
 
 folder = os.fsencode(apath)
@@ -87,7 +90,7 @@ for file in os.listdir(folder):
 
 for fp in files:
     fp = str(fp)
-    track, sr = librosa.load(fp, sr=None, offset=0, duration=None)
+    track, sr = librosa.load(fp, sr=None, offset=18, duration=10)
     print(f"Sample Rate is set to {sr}")
 
     # TODO: Optionally support percussive sampling.
