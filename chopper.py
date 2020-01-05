@@ -3,101 +3,97 @@ import librosa
 import soundfile as sf
 import numpy as np
 
-apath = "./assets/"
-newpath = "./new/samples"
 
-os.system("rm -rf new")
-os.system("mkdir new")
+class Chopper:
+    def __init__(self, input_path=None, output_directory=None):
+        self.input_path = input_path if input_path else "./assets/"
+        self.output_path = output_directory if output_directory else "./output/samples"
 
+    def chop(self):
+        self.reset_output_directory()
+        self.input_file_paths, self.filenames = self.collect_input_file_paths()
+        self.chop_audio_files()
 
-def smooth(current_slice, fade_length=1024):
-    incr = 1 / fade_length
-    fadeOut = 0
-    original_incr = 1 / fade_length
+    def reset_output_directory(self):
+        """
+        DANGER ZONE
+        Nuke output directory and then create new
+        """
+        os.system(f"rm -rf .{self.output_path}")
+        os.system(f"mkdir .{self.output_path}")
 
-    for i, sample in enumerate(current_slice[:fade_length]):
-        current_slice[i] = sample * incr
-        current_slice[(i + 1) * -1] = current_slice[(i + 1) * -1] * incr # * (fadeOut += incr)
-        incr += original_incr
-        if incr >= .999:
-            break
+    def fade_edges_linear(self, audio_slice, fade_len=1024):
+        current_gain = 1 / fade_len
+        original_incr = 1 / fade_len
 
-    return current_slice
+        for i, sample in enumerate(audio_slice[:fade_len]):
+            audio_slice[i] = sample * current_gain
+            audio_slice[(i + 1) * -1] = audio_slice[(i + 1) * -1] * current_gain
+            current_gain += original_incr
+            if current_gain >= 0.99999:
+                break
 
+        return audio_slice
 
-def get_end_indices(peaks, energy):
-    # Find points where energy is non-increasing
-    # all points:  energy[i] <= energy[i-1]
-    # tail points: energy[i] < energy[i+1]
-    minima = np.flatnonzero((energy[1:-1] <= energy[:-2]) & (energy[1:-1] < energy[2:]))
-    # Pad on a 0, just in case we have onsets with no preceding minimum
-    # Shift by one to account for slicing in minima detection
-    minima = librosa.util.fix_frames(1 + minima, x_min=0)
-    print(minima)
-    print(peaks)
-    # Only match going right from the detected events
-    return minima[librosa.util.match_events(peaks, minima, left=False, right=True)]
+    def extract_samples(self, track, fname, sr, hop=2048):
 
+        oenv = librosa.onset.onset_strength(y=track, sr=sr, hop_length=hop)
 
-def process_samples(track, fname, sr, hop=2048):
+        onsets = librosa.onset.onset_detect(onset_envelope=oenv, backtrack=False)
 
-    oenv = librosa.onset.onset_strength(y=track, sr=sr, hop_length=hop)
+        onset_bt = librosa.onset.onset_backtrack(onsets, oenv)
 
-    onsets = librosa.onset.onset_detect(onset_envelope=oenv, backtrack=False)
+        peaks = librosa.frames_to_samples(onsets, hop_length=hop)
+        sample_starts = librosa.frames_to_samples(onset_bt, hop_length=hop)
 
-    onset_bt = librosa.onset.onset_backtrack(onsets, oenv)
+        track_length = len(track)
+        for i, start in enumerate(sample_starts):
+            peak = peaks[i]
+            end = sample_starts[i + 1] if i + 1 < len(sample_starts) else -1
 
-    # onset_ft = get_end_indices(onsets, oenv)
+            raw = track[start:end]
+            # Strip trailing silence
+            trimmed, _ = librosa.effects.trim(raw)
 
-    peaks = librosa.frames_to_samples(onsets, hop_length=hop)
-    sample_starts = librosa.frames_to_samples(onset_bt, hop_length=hop)
+            # Apply linear fade in/out
+            faded = self.fade_edges_linear(trimmed)
 
-    track_length = len(track)
-    for i, start in enumerate(sample_starts):
-        peak = peaks[i]
-        end = sample_starts[i + 1] if i + 1 < len(sample_starts) else -1
-        print(start)
-        print("start")
-        print(peaks[i])
-        print("peak")
-        print(end)
-        print("end")
+            newname = fname + str(i) + ".wav"
+            print(newname)
 
-        raw = track[start:end]
-        # Strip trailing silence
-        trimmed, _ = librosa.effects.trim(raw)
-        # Add short silence before and after.
-        # padded = librosa.util.pad_center(trimmed, len(trimmed) + 1028, mode="constant")
-        faded = smooth(trimmed)
+            sf.write(newname, faded, sr)
 
+    def collect_input_file_paths(self):
+        input_dir = os.fsencode(self.input_path)
+        input_file_paths = []
+        filenames = []
+        for file in os.listdir(input_dir):
+            f = file.decode("utf-8")
 
-        newname = fname + str(i) + ".wav"
-        print(newname)
+            if f == ".DS_Store":
+                continue
+            fpath = input_dir.decode("utf-8") + f
+            print(fpath)
 
-        sf.write(newname, faded, sr)
+            input_file_paths.append(fpath)
+            filenames.append(f)
+            print(fpath)
+            print(filenames)
+            print(input_file_paths)
+        return input_file_paths, filenames
 
+    def chop_audio_files(self):
+        for idx, fp in enumerate(self.input_file_paths):
+            fp = str(fp)
+            print(fp)
+            track, sr = librosa.load(fp, sr=None, offset=0, duration=None)
+            print(f"Sample Rate is set to {sr}")
 
-folder = os.fsencode(apath)
-files = []
-for file in os.listdir(folder):
-    f = file.decode("utf-8")
-
-    fpath = folder.decode("utf-8") + f
-    print(fpath)
-
-    files.append(fpath)
-
-
-for fp in files:
-    fp = str(fp)
-    track, sr = librosa.load(fp, sr=None, offset=18, duration=10)
-    print(f"Sample Rate is set to {sr}")
-
-    # TODO: Optionally support percussive sampling.
-    # track = librosa.resample(tr, sr, 44100)
-    # low = librosa.effects.percussive(track)
-    # high = librosa.effects.harmonic(track)
-    #
-    # process_samples(low, newpath + "perc_", sr=sr)
-    # process_samples(high, newpath + "harm_")
-    process_samples(track, newpath + "_full_", sr)
+            # TODO: Optionally support percussive sampling.
+            # track = librosa.resample(tr, sr, 44100)
+            # low = librosa.effects.percussive(track)
+            # high = librosa.effects.harmonic(track)
+            #
+            # process_samples(low, newpath + "perc_", sr=sr)
+            # process_samples(high, newpath + "harm_")
+            self.extract_samples(track, self.output_path + "_full_", sr)
