@@ -19,8 +19,8 @@ class Chopper:
         DANGER ZONE
         Nuke output directory and then create new
         """
-        os.system(f"rm -rf .{self.output_path}")
-        os.system(f"mkdir .{self.output_path}")
+        os.system(f"rm -rf ./output")
+        os.system(f"mkdir ./output")
 
     def fade_edges_linear(self, audio_slice, fade_len=1024):
         current_gain = 1 / fade_len
@@ -35,7 +35,7 @@ class Chopper:
 
         return audio_slice
 
-    def extract_samples(self, track, fname, sr, hop=2048):
+    def extract_samples(self, track, fname, sr, hop=1024):
 
         oenv = librosa.onset.onset_strength(y=track, sr=sr, hop_length=hop)
 
