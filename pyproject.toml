@@ -6,7 +6,7 @@ license =  ""
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "3.7.3"
+python = "^3.7.1"
 librosa = "^0.7.1"
 pydub = "^0.23.1"
 soundfile = "^0.10.3"

@@ -22,7 +22,7 @@ class Chopper:
         os.system(f"rm -rf ./output")
         os.system(f"mkdir ./output")
 
-    def fade_edges_linear(self, audio_slice, fade_len=1024):
+    def fade_edges_linear(self, audio_slice, fade_len=441):
         current_gain = 1 / fade_len
         original_incr = 1 / fade_len
 
