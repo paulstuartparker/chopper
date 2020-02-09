@@ -8,25 +8,39 @@ class Chopper:
     def __init__(self, input_path=None, output_directory=None):
         self.input_path = input_path if input_path else "./assets/"
         self.output_path = output_directory if output_directory else "./output/samples"
+        self.hop_length = 512
+
+    def set_fade_len(self, newlength):
+        self.fade_len = int(newlength)
+
+    def set_hop_length(self, hop_length):
+        self.hop_length = int(hop_length)
+
+    def set_input_path(self):
+        pass
+
+    def set_output_path(self):
+        pass
 
     def chop(self):
-        self.reset_output_directory()
+        self.reset_tmp_directory()
         self.input_file_paths, self.filenames = self.collect_input_file_paths()
+        self.fade_len = 441
         self.chop_audio_files()
 
-    def reset_output_directory(self):
+    def reset_tmp_directory(self):
         """
         DANGER ZONE
         Nuke output directory and then create new
         """
-        os.system(f"rm -rf ./output")
-        os.system(f"mkdir ./output")
+        os.system(f"rm -rf ./.tmp_samples")
+        os.system(f"mkdir ./.tmp_samples")
 
-    def fade_edges_linear(self, audio_slice, fade_len=441):
-        current_gain = 1 / fade_len
-        original_incr = 1 / fade_len
+    def fade_edges_linear(self, audio_slice):
+        current_gain = 1 / self.fade_len
+        original_incr = 1 / self.fade_len
 
-        for i, sample in enumerate(audio_slice[:fade_len]):
+        for i, sample in enumerate(audio_slice[: self.fade_len]):
             audio_slice[i] = sample * current_gain
             audio_slice[(i + 1) * -1] = audio_slice[(i + 1) * -1] * current_gain
             current_gain += original_incr
@@ -35,16 +49,16 @@ class Chopper:
 
         return audio_slice
 
-    def extract_samples(self, track, fname, sr, hop=1024):
+    def extract_samples(self, track, fname, sr):
 
-        oenv = librosa.onset.onset_strength(y=track, sr=sr, hop_length=hop)
+        oenv = librosa.onset.onset_strength(y=track, sr=sr, hop_length=self.hop_length)
 
         onsets = librosa.onset.onset_detect(onset_envelope=oenv, backtrack=False)
 
         onset_bt = librosa.onset.onset_backtrack(onsets, oenv)
 
-        peaks = librosa.frames_to_samples(onsets, hop_length=hop)
-        sample_starts = librosa.frames_to_samples(onset_bt, hop_length=hop)
+        peaks = librosa.frames_to_samples(onsets, hop_length=self.hop_length)
+        sample_starts = librosa.frames_to_samples(onset_bt, hop_length=self.hop_length)
 
         track_length = len(track)
         for i, start in enumerate(sample_starts):

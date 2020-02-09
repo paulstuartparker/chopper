@@ -1,0 +1,7 @@
+chopper.py
+setup.py
+chopper.egg-info/PKG-INFO
+chopper.egg-info/SOURCES.txt
+chopper.egg-info/dependency_links.txt
+chopper.egg-info/requires.txt
+chopper.egg-info/top_level.txt
